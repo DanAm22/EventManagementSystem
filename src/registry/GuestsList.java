@@ -2,17 +2,31 @@ package registry;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class GuestsList implements Serializable {
 
     private int noSeats;
-    private ArrayList<Guest> guests;
+    private List<Guest> guests;
 
     private static final long serialVersionUID = 1;
 
     public GuestsList(int noSeats) {
         this.noSeats = noSeats;
         this.guests = new ArrayList<Guest>(this.noSeats);
+    }
+
+    public GuestsList(int noSeats, List<Guest> guests){
+        this.noSeats = noSeats;
+        this.guests = guests;
+    }
+
+    public List<Guest> getGuests(){
+        return this.guests;
+    }
+
+    public int getNoSeats(){
+        return this.noSeats;
     }
 
     public int add(Guest guest) {
@@ -51,8 +65,6 @@ public class GuestsList implements Serializable {
         if (phoneNumber != null) {
             return searchGuestByPhone(phoneNumber);
         }
-        System.out.println("Error: An error occured in 'GuestList',"
-                + " method 'findGuestPosition(...)'");
         return -1;
     }
 

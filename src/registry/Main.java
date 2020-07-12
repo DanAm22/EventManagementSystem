@@ -8,6 +8,7 @@ import exceptions.PhoneException;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -62,7 +63,7 @@ public class Main {
         return phoneNumber;
     }
 
-    private static void add() throws NameException, EmailException, PhoneException {
+    private static void add() throws NameException, EmailException, PhoneException, IOException {
         System.out.println("Se adauga o noua persoana...");
         String firstName = getFirstName();
         String lastName = getLastName();
@@ -144,6 +145,7 @@ public class Main {
         }
 
         updateGuest(guestsList.get(position));
+
     }
 
 
@@ -195,125 +197,178 @@ public class Main {
         System.out.println(guestsList.getSubscribeSize());
     }
 
-    public static void main(String[] args) throws InvalidOption, NameException, EmailException, PhoneException {
+    private static void writeToBinaryFile(List<Guest> data) throws IOException {
+        try (ObjectOutputStream binaryFileOut = new ObjectOutputStream(
+                new BufferedOutputStream(new FileOutputStream("guestsList.dat")))) {
+            binaryFileOut.writeObject(data);
+        }
+    }
 
-        System.out.println("Bun venit! Introduceti numarul de locuri disponibile:");
-        while (true) {
-            try {
-                int noSeats = scanner.nextInt();
-                guestsList = new GuestsList(noSeats);
-                break;
-            } catch (InputMismatchException e) {
-                scanner.nextLine();
-                System.out.println("Nu ai introdus un numar intreg. Reincearca din nou.");
+    private static ArrayList<Guest> readGuestsFromBinaryFile() throws IOException {
+        ArrayList<Guest> data = null;
+
+        try (ObjectInputStream binaryFileIn = new ObjectInputStream(
+                new BufferedInputStream(new FileInputStream("guestsList.dat")))) {
+            data = (ArrayList<Guest>) binaryFileIn.readObject();
+        } catch (ClassNotFoundException e) {
+            System.out.println("A class not found exception: " + e.getMessage());
+        }
+
+        return data;
+    }
+
+    private static void writeNoSeatsToBinaryFile(int noSeats) throws IOException {
+        try (DataOutputStream binaryFileOut = new DataOutputStream(
+                new BufferedOutputStream(new FileOutputStream("noSeats.dat")))) {
+            binaryFileOut.writeInt(noSeats);
+        } catch (IOException e) {
+            System.out.println("IOException thrown: " + e.getMessage());
+            return;
+        }
+    }
+
+    private static int readNoSeatsFromBinaryFile() throws IOException {
+        int noSeats = 0;
+        try (DataInputStream binaryFileIn = new DataInputStream(
+                new BufferedInputStream(new FileInputStream("noSeats.dat")))) {
+            noSeats = binaryFileIn.readInt();
+        }
+        return noSeats;
+    }
+
+
+    public static void main(String[] args) throws InvalidOption, NameException, EmailException, PhoneException, IOException {
+
+        try {
+            ArrayList<Guest> guests = readGuestsFromBinaryFile();
+            int noSeats = readNoSeatsFromBinaryFile();
+            if (noSeats > 0) {
+                guestsList = new GuestsList(noSeats, guests);
+            }
+        } catch (IOException e) {
+            System.out.println("Bun venit! Introduceti numarul de locuri disponibile:");
+            while (true) {
+                try {
+                    int noSeats = scanner.nextInt();
+                    guestsList = new GuestsList(noSeats);
+                    writeNoSeatsToBinaryFile(guestsList.getNoSeats());
+                    break;
+                } catch (InputMismatchException ie) {
+                    scanner.nextLine();
+                    System.out.println("Nu ai introdus un numar intreg. Reincearca din nou.");
+                }
             }
         }
 
-        System.out.println(waitingOrderMessage);
+            System.out.println(waitingOrderMessage);
 
-        while (true) {
-            switch (scanner.next()) {
-                case "help":
-                    Orders.printValues();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "add":
-                    while (true) {
-                        try {
-                            add();
-                            break;
-                        } catch (NameException e) {
-                            System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
-                        } catch (EmailException e) {
-                            System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
-                        } catch (PhoneException e) {
-                            System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+            while (true) {
+                switch (scanner.next()) {
+                    case "help":
+                        Orders.printValues();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "add":
+                        while (true) {
+                            try {
+                                add();
+                                writeToBinaryFile(guestsList.getGuests());
+                                break;
+                            } catch (NameException e) {
+                                System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
+                            } catch (EmailException e) {
+                                System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
+                            } catch (PhoneException e) {
+                                System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                            }
                         }
-                    }
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "check":
-                    while (true) {
-                        try {
-                            check();
-                            break;
-                        } catch (InputMismatchException | InvalidOption e) {
-                            System.out.println("Optiune invalida. Reincearca din nou.");
-                        } catch (NameException e) {
-                            System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
-                        } catch (EmailException e) {
-                            System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
-                        } catch (PhoneException e) {
-                            System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "check":
+                        while (true) {
+                            try {
+                                check();
+                                break;
+                            } catch (InputMismatchException | InvalidOption e) {
+                                System.out.println("Optiune invalida. Reincearca din nou.");
+                            } catch (NameException e) {
+                                System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
+                            } catch (EmailException e) {
+                                System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
+                            } catch (PhoneException e) {
+                                System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                            }
                         }
-                    }
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "remove":
-                    while (true) {
-                        try {
-                            remove();
-                            break;
-                        } catch (InputMismatchException | InvalidOption e) {
-                            System.out.println("Optiune invalida. Reincearca din nou.");
-                        } catch (NameException e) {
-                            System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
-                        } catch (EmailException e) {
-                            System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
-                        } catch (PhoneException e) {
-                            System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "remove":
+                        while (true) {
+                            try {
+                                remove();
+                                writeToBinaryFile(guestsList.getGuests());
+                                break;
+                            } catch (InputMismatchException | InvalidOption e) {
+                                System.out.println("Optiune invalida. Reincearca din nou.");
+                            } catch (NameException e) {
+                                System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
+                            } catch (EmailException e) {
+                                System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
+                            } catch (PhoneException e) {
+                                System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                            }
                         }
-                    }
-                    break;
-                case "update":
-                    while (true) {
-                        try {
-                            update();
-                            break;
-                        } catch (InputMismatchException | InvalidOption e) {
-                            System.out.println("Optiune invalida. Reincearca din nou.");
-                        } catch (NameException e) {
-                            System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
-                        } catch (EmailException e) {
-                            System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
-                        } catch (PhoneException e) {
-                            System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                        break;
+                    case "update":
+                        while (true) {
+                            try {
+                                update();
+                                writeToBinaryFile(guestsList.getGuests());
+                                break;
+                            } catch (InputMismatchException | InvalidOption e) {
+                                System.out.println("Optiune invalida. Reincearca din nou.");
+                            } catch (NameException e) {
+                                System.out.println("Numele / prenumele introdus este eronat. Reincearca din nou.");
+                            } catch (EmailException e) {
+                                System.out.println("Adresa de e-mail este invalida. Reincearca din nou.");
+                            } catch (PhoneException e) {
+                                System.out.println("Numarul de telefon este eronat. Reincearca din nou.");
+                            }
                         }
-                    }
-                    break;
-                case "guests":
-                    guestsList();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "waitlist":
-                    waitingList();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "available":
-                    available();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "guests_no":
-                    guestNo();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "waitlist_no":
-                    waitingList();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "subscribe_no":
-                    subscribeNo();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "search":
-                    search();
-                    System.out.println(waitingOrderMessage);
-                    break;
-                case "quit":
-                    System.out.println("Inchide aplicatia...");
-                    System.exit(0);
-                    break;
+                        break;
+                    case "guests":
+                        guestsList();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "waitlist":
+                        waitingList();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "available":
+                        available();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "guests_no":
+                        guestNo();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "waitlist_no":
+                        waitingList();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "subscribe_no":
+                        subscribeNo();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "search":
+                        search();
+                        System.out.println(waitingOrderMessage);
+                        break;
+                    case "quit":
+                        System.out.println("Inchide aplicatia...");
+                        System.exit(0);
+                        break;
+                }
             }
         }
     }
-}
+
